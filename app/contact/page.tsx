@@ -65,9 +65,9 @@ export default function ContactPage() {
 
           {[
             { label: 'Email', value: 'hello@venturo.eg' },
-            { label: 'Phone', value: '+20 100 000 0000' },
+            { label: 'Phone', value: '+20 12 710 85877' },
             { label: 'Location', value: 'Cairo, Egypt' },
-            { label: 'Hours', value: 'Sat – Thu, 10am – 8pm' },
+            { label: 'Instagram', value: 'venturo' },
           ].map((item, i) => (
             <motion.div key={item.label}
               initial={{ opacity: 0, y: 20 }}

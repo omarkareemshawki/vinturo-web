@@ -15,8 +15,8 @@ const products = [
     price: 2200,
     accent: 'var(--gold)',
     accentRgb: '201,169,110',
-    description: 'A bold collection of five powerful scents for the man who commands every room he enters. Housed in a hand-crafted wooden box with brass fittings.',
-    notes: ['Oud', 'Sandalwood', 'Black Pepper', 'Amber', 'Cedar'],
+    description: 'A bold collection of five powerful scents for the man who commands every room he enters. Housed in a hand-crafted leather box with brass fittings. 5 x 30ml',
+    notes: ['Oud', 'Sandalwood', 'spices', 'Amber', 'Cedar'],
   },
   {
     id: 'forbidden-odyssey',
@@ -27,7 +27,7 @@ const products = [
     price: 2200,
     accent: '#a0445a',
     accentRgb: '107,26,42',
-    description: 'Five intoxicating scents for the woman who leaves a trail wherever she goes. Presented in a crimson velvet-lined box — a treasure worth opening.',
+    description: 'Five intoxicating scents for the woman who leaves a trail wherever she goes. Presented in a crimson leather box — a treasure worth opening. 5 x 30ml',
     notes: ['Rose', 'Musk', 'Vanilla', 'Jasmine', 'Patchouli'],
   },
 ];
