@@ -47,38 +47,49 @@ export default function CheckoutPage() {
   const isDetailsValid = form.firstName && form.lastName && form.email && form.phone && form.address && form.city && form.governorate;
 
   const handleConfirm = async () => {
-    if (!payment) return;
-    setLoading(true);
-    try {
-      const { error } = await supabase.from('orders').insert({
-        first_name: form.firstName,
-        last_name: form.lastName,
-        email: form.email,
-        phone: form.phone,
-        address: form.address,
-        city: form.city,
-        governorate: form.governorate,
-        notes: form.notes,
-        payment_method: payment,
-        items: items,
-        total: total(),
-        status: 'pending',
-      });
+  if (!payment) return;
+  setLoading(true);
+  try {
+    const { error } = await supabase.from('orders').insert({
+      first_name: form.firstName,
+      last_name: form.lastName,
+      email: form.email,
+      phone: form.phone,
+      address: form.address,
+      city: form.city,
+      governorate: form.governorate,
+      notes: form.notes,
+      payment_method: payment,
+      items: items,
+      total: total(),
+      status: 'pending',
+    });
 
-      if (error) {
-        console.error('Order error:', error);
-        setLoading(false);
-        return;
-      }
-
-      clearCart();
-      setStep('confirmed');
-    } catch (err) {
-      console.error('Unexpected error:', err);
+    if (error) {
+      console.error('Order error:', error);
       setLoading(false);
+      return;
     }
-  };
 
+    // Send confirmation email
+    await fetch('/api/send-order-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        form,
+        items,
+        total: total(),
+        payment,
+      }),
+    });
+
+    clearCart();
+    setStep('confirmed');
+  } catch (err) {
+    console.error('Unexpected error:', err);
+    setLoading(false);
+  }
+};
   const governorates = [
     'Cairo', 'Giza', 'Alexandria', 'Dakahlia', 'Red Sea', 'Beheira',
     'Fayoum', 'Gharbia', 'Ismailia', 'Menofia', 'Minya', 'Qalyubia',
