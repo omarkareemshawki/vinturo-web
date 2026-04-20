@@ -8,17 +8,30 @@ import { supabase } from '../lib/supabase';
 
 type Step = 'details' | 'payment' | 'confirmed';
 
+const COD_FEE = 100;
+
+function validateEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function validatePhone(phone: string) {
+  return /^(\+20|0020|0)?1[0125][0-9]{8}$/.test(phone.replace(/\s/g, ''));
+}
+
 export default function CheckoutPage() {
   const { items, total, clearCart } = useCartStore();
-  const router = useRouter();
   const { isMobile } = useWindowSize();
   const [step, setStep] = useState<Step>('details');
   const [loading, setLoading] = useState(false);
+  const [payment, setPayment] = useState<'cod' | 'card' | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '',
     address: '', city: '', governorate: '', notes: '',
   });
-  const [payment, setPayment] = useState<'cod' | 'card' | null>(null);
+
+  const codTotal = total() + COD_FEE;
+  const finalTotal = payment === 'cod' ? codTotal : total();
 
   const inputStyle = {
     width: '100%',
@@ -32,6 +45,8 @@ export default function CheckoutPage() {
     letterSpacing: '0.04em',
     outline: 'none',
     transition: 'border-color 0.3s ease',
+    WebkitAppearance: 'none' as const,
+    borderRadius: 0,
   };
 
   const labelStyle = {
@@ -44,52 +59,58 @@ export default function CheckoutPage() {
     marginBottom: '0.4rem',
   };
 
-  const isDetailsValid = form.firstName && form.lastName && form.email && form.phone && form.address && form.city && form.governorate;
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+    if (form.firstName.trim().length < 2) newErrors.firstName = 'At least 2 characters';
+    if (form.lastName.trim().length < 2) newErrors.lastName = 'At least 2 characters';
+    if (!validateEmail(form.email)) newErrors.email = 'Enter a valid email address';
+    if (!validatePhone(form.phone)) newErrors.phone = 'Enter a valid Egyptian phone number';
+    if (!form.address.trim()) newErrors.address = 'Address is required';
+    if (!form.city.trim()) newErrors.city = 'City is required';
+    if (!form.governorate) newErrors.governorate = 'Please select a governorate';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleContinue = () => {
+    if (validate()) setStep('payment');
+  };
 
   const handleConfirm = async () => {
-  if (!payment) return;
-  setLoading(true);
-  try {
-    const { error } = await supabase.from('orders').insert({
-      first_name: form.firstName,
-      last_name: form.lastName,
-      email: form.email,
-      phone: form.phone,
-      address: form.address,
-      city: form.city,
-      governorate: form.governorate,
-      notes: form.notes,
-      payment_method: payment,
-      items: items,
-      total: total(),
-      status: 'pending',
-    });
+    if (!payment) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase.from('orders').insert({
+        first_name: form.firstName,
+        last_name: form.lastName,
+        email: form.email,
+        phone: form.phone,
+        address: form.address,
+        city: form.city,
+        governorate: form.governorate,
+        notes: form.notes,
+        payment_method: payment,
+        items: items,
+        total: finalTotal,
+        status: 'pending',
+      });
 
-    if (error) {
-      console.error('Order error:', error);
+      if (error) { console.error('Order error:', error); setLoading(false); return; }
+
+      await fetch('/api/send-order-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ form, items, total: finalTotal, payment }),
+      });
+
+      clearCart();
+      setStep('confirmed');
+    } catch (err) {
+      console.error('Unexpected error:', err);
       setLoading(false);
-      return;
     }
+  };
 
-    // Send confirmation email
-    await fetch('/api/send-order-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        form,
-        items,
-        total: total(),
-        payment,
-      }),
-    });
-
-    clearCart();
-    setStep('confirmed');
-  } catch (err) {
-    console.error('Unexpected error:', err);
-    setLoading(false);
-  }
-};
   const governorates = [
     'Cairo', 'Giza', 'Alexandria', 'Dakahlia', 'Red Sea', 'Beheira',
     'Fayoum', 'Gharbia', 'Ismailia', 'Menofia', 'Minya', 'Qalyubia',
@@ -107,8 +128,12 @@ export default function CheckoutPage() {
     );
   }
 
+  const ErrorMsg = ({ field }: { field: string }) => errors[field] ? (
+    <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.5rem', color: '#a0445a', letterSpacing: '0.1em', marginTop: '0.3rem' }}>{errors[field]}</p>
+  ) : null;
+
   return (
-    <div style={{ background: 'var(--black)', minHeight: '100vh', paddingTop: '8rem', overflowX: 'hidden' }}>
+    <div style={{ background: 'var(--black)', minHeight: '100vh', paddingTop: '6rem', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' as any }}>
 
       {/* Header */}
       <motion.div
@@ -123,7 +148,7 @@ export default function CheckoutPage() {
         </h1>
 
         {step !== 'confirmed' && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', marginTop: '2rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', marginTop: '2rem', flexWrap: 'wrap' }}>
             {(['details', 'payment'] as Step[]).map((s, i) => (
               <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -131,12 +156,9 @@ export default function CheckoutPage() {
                     width: '24px', height: '24px', borderRadius: '50%',
                     border: `1px solid ${step === s || (s === 'details' && step === 'payment') ? 'var(--gold)' : 'rgba(201,169,110,0.2)'}`,
                     background: step === s || (s === 'details' && step === 'payment') ? 'var(--gold)' : 'transparent',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'all 0.4s ease',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.4s ease',
                   }}>
-                    <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.55rem', color: step === s || (s === 'details' && step === 'payment') ? 'var(--black)' : 'var(--text-muted)' }}>
-                      {i + 1}
-                    </span>
+                    <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.55rem', color: step === s || (s === 'details' && step === 'payment') ? 'var(--black)' : 'var(--text-muted)' }}>{i + 1}</span>
                   </div>
                   <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.55rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: step === s ? 'var(--gold)' : 'var(--text-muted)' }}>
                     {s === 'details' ? 'Your Details' : 'Payment'}
@@ -161,7 +183,7 @@ export default function CheckoutPage() {
 
         <AnimatePresence mode="wait">
 
-          {/* STEP 1 */}
+          {/* STEP 1 — DETAILS */}
           {step === 'details' && (
             <motion.div key="details" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.6 }}>
               <p className="section-label" style={{ marginBottom: '2rem' }}>Delivery Information</p>
@@ -171,11 +193,12 @@ export default function CheckoutPage() {
                   <div key={field.key} style={{ marginBottom: '1.8rem' }}>
                     <label style={labelStyle}>{field.label}</label>
                     <input type="text" value={form[field.key as keyof typeof form]}
-                      onChange={e => setForm({ ...form, [field.key]: e.target.value })}
-                      style={inputStyle}
+                      onChange={e => { setForm({ ...form, [field.key]: e.target.value }); setErrors({ ...errors, [field.key]: '' }); }}
+                      style={{ ...inputStyle, borderBottomColor: errors[field.key] ? '#a0445a' : 'rgba(201,169,110,0.2)' }}
                       onFocus={e => (e.currentTarget.style.borderBottomColor = 'var(--gold)')}
-                      onBlur={e => (e.currentTarget.style.borderBottomColor = 'rgba(201,169,110,0.2)')}
+                      onBlur={e => (e.currentTarget.style.borderBottomColor = errors[field.key] ? '#a0445a' : 'rgba(201,169,110,0.2)')}
                     />
+                    <ErrorMsg field={field.key} />
                   </div>
                 ))}
               </div>
@@ -188,11 +211,12 @@ export default function CheckoutPage() {
                 <div key={field.key} style={{ marginBottom: '1.8rem' }}>
                   <label style={labelStyle}>{field.label}</label>
                   <input type={field.type} value={form[field.key as keyof typeof form]}
-                    onChange={e => setForm({ ...form, [field.key]: e.target.value })}
-                    style={inputStyle}
+                    onChange={e => { setForm({ ...form, [field.key]: e.target.value }); setErrors({ ...errors, [field.key]: '' }); }}
+                    style={{ ...inputStyle, borderBottomColor: errors[field.key] ? '#a0445a' : 'rgba(201,169,110,0.2)' }}
                     onFocus={e => (e.currentTarget.style.borderBottomColor = 'var(--gold)')}
-                    onBlur={e => (e.currentTarget.style.borderBottomColor = 'rgba(201,169,110,0.2)')}
+                    onBlur={e => (e.currentTarget.style.borderBottomColor = errors[field.key] ? '#a0445a' : 'rgba(201,169,110,0.2)')}
                   />
+                  <ErrorMsg field={field.key} />
                 </div>
               ))}
 
@@ -200,23 +224,25 @@ export default function CheckoutPage() {
                 <div style={{ marginBottom: '1.8rem' }}>
                   <label style={labelStyle}>City</label>
                   <input type="text" value={form.city}
-                    onChange={e => setForm({ ...form, city: e.target.value })}
-                    style={inputStyle}
+                    onChange={e => { setForm({ ...form, city: e.target.value }); setErrors({ ...errors, city: '' }); }}
+                    style={{ ...inputStyle, borderBottomColor: errors.city ? '#a0445a' : 'rgba(201,169,110,0.2)' }}
                     onFocus={e => (e.currentTarget.style.borderBottomColor = 'var(--gold)')}
-                    onBlur={e => (e.currentTarget.style.borderBottomColor = 'rgba(201,169,110,0.2)')}
+                    onBlur={e => (e.currentTarget.style.borderBottomColor = errors.city ? '#a0445a' : 'rgba(201,169,110,0.2)')}
                   />
+                  <ErrorMsg field="city" />
                 </div>
                 <div style={{ marginBottom: '1.8rem' }}>
                   <label style={labelStyle}>Governorate</label>
                   <select value={form.governorate}
-                    onChange={e => setForm({ ...form, governorate: e.target.value })}
-                    style={{ ...inputStyle, cursor: 'pointer' }}
+                    onChange={e => { setForm({ ...form, governorate: e.target.value }); setErrors({ ...errors, governorate: '' }); }}
+                    style={{ ...inputStyle, cursor: 'pointer', borderBottomColor: errors.governorate ? '#a0445a' : 'rgba(201,169,110,0.2)' }}
                     onFocus={e => (e.currentTarget.style.borderBottomColor = 'var(--gold)')}
-                    onBlur={e => (e.currentTarget.style.borderBottomColor = 'rgba(201,169,110,0.2)')}
+                    onBlur={e => (e.currentTarget.style.borderBottomColor = errors.governorate ? '#a0445a' : 'rgba(201,169,110,0.2)')}
                   >
-                    <option value="" style={{ background: 'var(--black)' }}>Select...</option>
+                    <option value="" style={{ background: '#0D0A07' }}>Select...</option>
                     {governorates.map(g => <option key={g} value={g} style={{ background: '#1a1008' }}>{g}</option>)}
                   </select>
+                  <ErrorMsg field="governorate" />
                 </div>
               </div>
 
@@ -231,29 +257,24 @@ export default function CheckoutPage() {
               </div>
 
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-                onClick={() => isDetailsValid && setStep('payment')}
-                style={{
-                  width: '100%', fontFamily: 'var(--font-body)', fontSize: '0.6rem',
-                  letterSpacing: '0.25em', textTransform: 'uppercase',
-                  color: isDetailsValid ? 'var(--black)' : 'var(--text-muted)',
-                  background: isDetailsValid ? 'var(--gold)' : 'rgba(201,169,110,0.15)',
-                  border: 'none', padding: '1.1rem',
-                  cursor: isDetailsValid ? 'pointer' : 'not-allowed',
-                  transition: 'all 0.4s ease',
-                }}
+                onClick={handleContinue}
+                style={{ width: '100%', fontFamily: 'var(--font-body)', fontSize: '0.6rem', letterSpacing: '0.25em', textTransform: 'uppercase', color: 'var(--black)', background: 'var(--gold)', border: 'none', padding: '1.1rem', cursor: 'pointer', transition: 'all 0.4s ease' }}
               >Continue to Payment</motion.button>
             </motion.div>
           )}
 
-          {/* STEP 2 */}
+          {/* STEP 2 — PAYMENT */}
           {step === 'payment' && (
-            <motion.div key="payment" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.6 }}>
+            <motion.div key="payment"
+              initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.6 }}
+              onAnimationComplete={() => { if (isMobile) window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            >
               <p className="section-label" style={{ marginBottom: '2rem' }}>Payment Method</p>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '3rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
-                  { id: 'cod', label: 'Cash on Delivery', desc: 'Pay when your order arrives' },
-                  { id: 'card', label: 'Credit / Debit Card', desc: 'Visa, Mastercard, Meeza — powered by Paymob' },
+                  { id: 'cod', label: 'Cash on Delivery', desc: 'Pay when your order arrives', fee: '+100 EGP service fee' },
+                  { id: 'card', label: 'Credit / Debit Card', desc: 'Visa, Mastercard, Meeza — powered by Paymob', fee: 'Free shipping' },
                 ].map(option => (
                   <motion.div key={option.id} whileHover={{ scale: 1.01 }}
                     onClick={() => setPayment(option.id as 'cod' | 'card')}
@@ -261,28 +282,34 @@ export default function CheckoutPage() {
                       border: `1px solid ${payment === option.id ? 'var(--gold)' : 'rgba(201,169,110,0.15)'}`,
                       padding: '1.5rem', cursor: 'pointer', transition: 'all 0.3s ease',
                       background: payment === option.id ? 'rgba(201,169,110,0.05)' : 'transparent',
-                      display: 'flex', alignItems: 'center', gap: '1rem',
+                      display: 'flex', alignItems: 'flex-start', gap: '1rem',
                     }}
                   >
-                    <div style={{
-                      width: '18px', height: '18px', borderRadius: '50%', flexShrink: 0,
-                      border: `1px solid ${payment === option.id ? 'var(--gold)' : 'rgba(201,169,110,0.3)'}`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
+                    <div style={{ width: '18px', height: '18px', borderRadius: '50%', flexShrink: 0, marginTop: '2px', border: `1px solid ${payment === option.id ? 'var(--gold)' : 'rgba(201,169,110,0.3)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {payment === option.id && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--gold)' }} />}
                     </div>
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <p style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', color: 'var(--cream)', letterSpacing: '0.06em', marginBottom: '0.25rem' }}>{option.label}</p>
-                      <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: 'var(--text-muted)' }}>{option.desc}</p>
+                      <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.62rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>{option.desc}</p>
+                      <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.55rem', letterSpacing: '0.1em', color: option.id === 'cod' ? '#a0445a' : 'var(--gold)', textTransform: 'uppercase' }}>{option.fee}</p>
                     </div>
                   </motion.div>
                 ))}
               </div>
 
+              {payment === 'cod' && (
+                <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
+                  style={{ background: 'rgba(107,26,42,0.1)', border: '1px solid rgba(107,26,42,0.3)', padding: '1rem 1.25rem', marginBottom: '1.5rem' }}
+                >
+                  <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.62rem', color: '#c0566a', lineHeight: 1.7 }}>
+                    A service fee of <strong>100 EGP</strong> is added for cash on delivery orders. Choose card payment for free shipping.
+                  </p>
+                </motion.div>
+              )}
+
               <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1.5rem', marginBottom: '2rem' }}>
                 <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.6rem', color: 'var(--text-muted)', lineHeight: 1.8 }}>
-                  🚚 Delivery within <span style={{ color: 'var(--gold)' }}>3–5 business days</span> across Egypt<br />
-                  📦 Free shipping on all orders
+                  🚚 Delivery within <span style={{ color: 'var(--gold)' }}>3–5 business days</span> across Egypt
                 </p>
               </div>
 
@@ -292,23 +319,15 @@ export default function CheckoutPage() {
                   onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--gold)')}
                   onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(201,169,110,0.2)')}
                 >← Back</button>
-
-                <motion.button
-                  whileHover={{ scale: loading ? 1 : 1.02 }}
-                  whileTap={{ scale: loading ? 1 : 0.97 }}
+                <motion.button whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.97 }}
                   onClick={() => !loading && payment && handleConfirm()}
                   style={{
-                    flex: 2, fontFamily: 'var(--font-body)', fontSize: '0.6rem',
-                    letterSpacing: '0.25em', textTransform: 'uppercase',
+                    flex: 2, fontFamily: 'var(--font-body)', fontSize: '0.6rem', letterSpacing: '0.25em', textTransform: 'uppercase',
                     color: payment && !loading ? 'var(--black)' : 'var(--text-muted)',
                     background: payment && !loading ? 'var(--gold)' : 'rgba(201,169,110,0.15)',
-                    border: 'none', padding: '1.1rem',
-                    cursor: payment && !loading ? 'pointer' : 'not-allowed',
-                    transition: 'all 0.4s ease',
+                    border: 'none', padding: '1.1rem', cursor: payment && !loading ? 'pointer' : 'not-allowed', transition: 'all 0.4s ease',
                   }}
-                >
-                  {loading ? 'Placing Order...' : 'Place Order'}
-                </motion.button>
+                >{loading ? 'Placing Order...' : 'Place Order'}</motion.button>
               </div>
             </motion.div>
           )}
@@ -364,13 +383,25 @@ export default function CheckoutPage() {
                 <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Subtotal</p>
                 <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.7rem', color: 'var(--cream)' }}>{total().toLocaleString()} EGP</p>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Shipping</p>
-                <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.7rem', color: 'var(--gold)' }}>Free</p>
+                <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.7rem', color: payment === 'cod' ? '#c0566a' : 'var(--gold)' }}>
+                  {payment === 'cod' ? '+100 EGP' : 'Free'}
+                </p>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+              {payment === 'cod' && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}
+                  style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}
+                >
+                  <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.6rem', color: '#c0566a', textTransform: 'uppercase' }}>COD Fee</p>
+                  <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.7rem', color: '#c0566a' }}>100 EGP</p>
+                </motion.div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '0.5rem' }}>
                 <p style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', color: 'var(--cream)' }}>Total</p>
-                <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.3rem', color: 'var(--gold)' }}>{total().toLocaleString()} <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>EGP</span></p>
+                <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.3rem', color: 'var(--gold)' }}>
+                  {(payment === 'cod' ? codTotal : total()).toLocaleString()} <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>EGP</span>
+                </p>
               </div>
             </div>
           </motion.div>

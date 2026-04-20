@@ -1,17 +1,19 @@
 'use client';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useWindowSize } from '../hooks/useWindowSize';
 
 export default function ContactPage() {
   const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' });
   const [sent, setSent] = useState(false);
+  const { isMobile } = useWindowSize();
 
   const handleSubmit = () => {
     if (!form.name || !form.email) return;
     setSent(true);
   };
 
-  const inputStyle = {
+  const inputStyle: React.CSSProperties = {
     width: '100%',
     background: 'transparent',
     border: 'none',
@@ -25,15 +27,20 @@ export default function ContactPage() {
     transition: 'border-color 0.3s ease',
   };
 
-  return (
-    <div style={{ background: 'var(--black)', minHeight: '100vh', paddingTop: '8rem' }}>
+  const infoItems = [
+    { label: 'Email', value: 'hello@venturo.eg', isLink: false },
+    { label: 'Phone', value: '+20 12 710 85877', isLink: false },
+    { label: 'Location', value: 'Cairo, Egypt', isLink: false },
+    { label: 'Instagram', value: 'venturo', isLink: true },
+  ];
 
-      {/* Header */}
+  return (
+    <div style={{ background: 'var(--black)', minHeight: '100vh', paddingTop: '8rem', overflowX: 'hidden' }}>
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1.2 }}
-        style={{ textAlign: 'center', padding: '0 3rem 5rem', position: 'relative' }}
+        style={{ textAlign: 'center', padding: isMobile ? '0 1.5rem 3rem' : '0 3rem 5rem', position: 'relative' }}
       >
         <motion.div
           style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 80% at 50% 50%, rgba(107,26,42,0.12) 0%, transparent 70%)', pointerEvents: 'none' }}
@@ -48,39 +55,65 @@ export default function ContactPage() {
           style={{ width: '60px', height: '60px', objectFit: 'contain', filter: 'drop-shadow(0 0 12px rgba(201,169,110,0.3))', margin: '0 auto 2rem', display: 'block' }}
         />
         <p className="section-label" style={{ marginBottom: '1rem' }}>Get in Touch</p>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2.5rem, 5vw, 4.5rem)', fontWeight: 300, letterSpacing: '0.12em', color: 'var(--cream)' }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: isMobile ? '2.2rem' : 'clamp(2.5rem, 5vw, 4.5rem)', fontWeight: 300, letterSpacing: '0.12em', color: 'var(--cream)' }}>
           Contact Us
         </h1>
       </motion.div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6rem', padding: '0 6rem 8rem', maxWidth: '1100px', margin: '0 auto' }}>
-
-        {/* Left — Info */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+        gap: isMobile ? '3rem' : '6rem',
+        padding: isMobile ? '0 1.5rem 4rem' : '0 6rem 8rem',
+        maxWidth: '1100px',
+        margin: '0 auto',
+        width: '100%',
+      }}>
         <motion.div
           initial={{ opacity: 0, x: -40 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 1.2, delay: 0.2 }}
         >
           <p className="section-label" style={{ marginBottom: '2rem' }}>Reach Us</p>
-
-          {[
-            { label: 'Email', value: 'hello@venturo.eg' },
-            { label: 'Phone', value: '+20 12 710 85877' },
-            { label: 'Location', value: 'Cairo, Egypt' },
-            { label: 'Instagram', value: 'venturo' },
-          ].map((item, i) => (
-            <motion.div key={item.label}
+          {infoItems.map((item, i) => (
+            <motion.div
+              key={item.label}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.3 + i * 0.1 }}
               style={{ borderTop: '1px solid var(--border)', paddingTop: '1.5rem', marginBottom: '1.5rem' }}
             >
-              <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.5rem', letterSpacing: '0.25em', color: 'var(--gold)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>{item.label}</p>
-              <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', letterSpacing: '0.06em', color: 'var(--cream)' }}>{item.value}</p>
+              <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.5rem', letterSpacing: '0.25em', color: 'var(--gold)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                {item.label}
+              </p>
+              {item.isLink ? (
+                <a
+                  href="https://www.instagram.com/venturo.eg?igsh=ZWpudW42YjN1OGhx"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-block',
+                    fontFamily: 'var(--font-body)',
+                    fontSize: '0.55rem',
+                    letterSpacing: '0.2em',
+                    textTransform: 'uppercase',
+                    color: 'var(--black)',
+                    background: 'var(--gold)',
+                    padding: '0.6rem 1.5rem',
+                    marginTop: '0.25rem',
+                    cursor: 'pointer',
+                    textDecoration: 'none',
+                  }}
+                >
+                  venturo
+                </a>
+              ) : (
+                <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', letterSpacing: '0.06em', color: 'var(--cream)' }}>
+                  {item.value}
+                </p>
+              )}
             </motion.div>
           ))}
-
-          {/* Animated decorative line */}
           <motion.div
             style={{ height: '1px', background: 'linear-gradient(to right, var(--gold), transparent)', marginTop: '3rem' }}
             animate={{ width: ['0%', '100%', '0%'] }}
@@ -88,11 +121,11 @@ export default function ContactPage() {
           />
         </motion.div>
 
-        {/* Right — Form */}
         <motion.div
-          initial={{ opacity: 0, x: 40 }}
+          initial={{ opacity: 0, x: isMobile ? 0 : 40 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 1.2, delay: 0.3 }}
+          style={{ width: '100%', minWidth: 0 }}
         >
           {sent ? (
             <motion.div
@@ -116,19 +149,19 @@ export default function ContactPage() {
               </p>
             </motion.div>
           ) : (
-            <div>
+            <div style={{ width: '100%' }}>
               <p className="section-label" style={{ marginBottom: '2rem' }}>Send a Message</p>
-
               {[
                 { key: 'name', label: 'Full Name', type: 'text' },
                 { key: 'email', label: 'Email Address', type: 'email' },
                 { key: 'phone', label: 'Phone Number (optional)', type: 'tel' },
               ].map((field, i) => (
-                <motion.div key={field.key}
+                <motion.div
+                  key={field.key}
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, delay: 0.4 + i * 0.1 }}
-                  style={{ marginBottom: '2rem' }}
+                  style={{ marginBottom: '2rem', width: '100%' }}
                 >
                   <label style={{ fontFamily: 'var(--font-body)', fontSize: '0.5rem', letterSpacing: '0.25em', color: 'var(--gold)', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>
                     {field.label}
@@ -143,12 +176,11 @@ export default function ContactPage() {
                   />
                 </motion.div>
               ))}
-
               <motion.div
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.7 }}
-                style={{ marginBottom: '2.5rem' }}
+                style={{ marginBottom: '2.5rem', width: '100%' }}
               >
                 <label style={{ fontFamily: 'var(--font-body)', fontSize: '0.5rem', letterSpacing: '0.25em', color: 'var(--gold)', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>
                   Message
@@ -157,20 +189,26 @@ export default function ContactPage() {
                   rows={4}
                   value={form.message}
                   onChange={e => setForm({ ...form, message: e.target.value })}
-                  style={{ ...inputStyle, resize: 'none', borderBottom: '1px solid rgba(201,169,110,0.2)' }}
+                  style={{ ...inputStyle, resize: 'none' }}
                   onFocus={e => (e.currentTarget.style.borderBottomColor = 'var(--gold)')}
                   onBlur={e => (e.currentTarget.style.borderBottomColor = 'rgba(201,169,110,0.2)')}
                 />
               </motion.div>
-
               <motion.button
-                whileHover={{ scale: 1.02, letterSpacing: '0.3em' }}
+                whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleSubmit}
                 style={{
-                  fontFamily: 'var(--font-body)', fontSize: '0.6rem', letterSpacing: '0.25em',
-                  textTransform: 'uppercase', color: 'var(--black)', background: 'var(--gold)',
-                  border: 'none', padding: '1rem 2.5rem', cursor: 'pointer', width: '100%',
+                  fontFamily: 'var(--font-body)',
+                  fontSize: '0.6rem',
+                  letterSpacing: '0.25em',
+                  textTransform: 'uppercase',
+                  color: 'var(--black)',
+                  background: 'var(--gold)',
+                  border: 'none',
+                  padding: '1rem 2.5rem',
+                  cursor: 'pointer',
+                  width: '100%',
                   transition: 'all 0.3s ease',
                 }}
               >
