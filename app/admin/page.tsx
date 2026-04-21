@@ -39,21 +39,51 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'overview' | 'orders'>('overview');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [authenticated, setAuthenticated] = useState(false);
   const router = useRouter();
 
-  useEffect(() => { fetchOrders(); }, []);
+  useEffect(() => {
+    const checkAuth = () => {
+      const auth = document.cookie.includes('admin_auth=true');
+      if (!auth) {
+        router.push('/admin/login');
+        return;
+      }
+      setAuthenticated(true);
+      fetchOrders();
+    };
+    checkAuth();
+  }, []);
 
   const fetchOrders = async () => {
     setLoading(true);
-    const { data } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
-    setOrders(data || []);
+    try {
+      const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+      if (error) {
+        console.error('Error fetching orders:', error);
+        setOrders([]);
+      } else {
+        setOrders(data || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch orders:', err);
+      setOrders([]);
+    }
     setLoading(false);
   };
 
   const updateStatus = async (id: string, status: string) => {
     setUpdatingId(id);
-    await supabase.from('orders').update({ status }).eq('id', id);
-    await fetchOrders();
+    try {
+      const { error } = await supabase.from('orders').update({ status }).eq('id', id);
+      if (error) {
+        console.error('Error updating status:', error);
+      } else {
+        await fetchOrders();
+      }
+    } catch (err) {
+      console.error('Failed to update status:', err);
+    }
     setUpdatingId(null);
   };
 
@@ -102,6 +132,8 @@ export default function AdminDashboard() {
     border: '1px solid rgba(201,169,110,0.12)',
     padding: '1.5rem',
   };
+
+  if (!authenticated) return null;
 
   return (
     <div style={{ background: 'var(--black)', minHeight: '100vh', overflowX: 'hidden' }}>
