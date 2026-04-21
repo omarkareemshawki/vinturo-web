@@ -39,6 +39,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'overview' | 'orders'>('overview');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [message, setMessage] = useState<string>('');
   const [authenticated, setAuthenticated] = useState(false);
   const router = useRouter();
 
@@ -74,22 +75,22 @@ export default function AdminDashboard() {
 
   const updateStatus = async (id: string, status: string) => {
     setUpdatingId(id);
+    setMessage('');
     try {
       const { error } = await supabase.from('orders').update({ status }).eq('id', id);
       if (error) {
         console.error('Error updating status:', error);
+        setMessage(`Failed to update status: ${error.message || 'Unknown error'}`);
       } else {
+        setMessage('Status updated successfully.');
         await fetchOrders();
+        setTimeout(() => setMessage(''), 3000);
       }
     } catch (err) {
       console.error('Failed to update status:', err);
+      setMessage('Failed to update status. Please try again.');
     }
     setUpdatingId(null);
-  };
-
-  const handleLogout = async () => {
-    await fetch('/api/admin-logout', { method: 'POST' });
-    router.push('/admin/login');
   };
 
   // Metrics
@@ -139,7 +140,7 @@ export default function AdminDashboard() {
     <div style={{ background: 'var(--black)', minHeight: '100vh', overflowX: 'hidden' }}>
 
       {/* Top Bar */}
-      <div style={{ borderBottom: '1px solid rgba(201,169,110,0.1)', padding: '1rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'rgba(13,10,7,0.95)', backdropFilter: 'blur(12px)', zIndex: 100 }}>
+      <div style={{ borderBottom: '1px solid rgba(201,169,110,0.1)', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'sticky', top: 0, background: 'rgba(13,10,7,0.95)', backdropFilter: 'blur(12px)', zIndex: 100 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <img src="/compass.png" alt="Compass" style={{ width: '28px', height: '28px', filter: 'drop-shadow(0 0 6px rgba(201,169,110,0.4))' }} />
           <div>
@@ -147,22 +148,18 @@ export default function AdminDashboard() {
             <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.45rem', letterSpacing: '0.3em', color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase' }}>Admin Dashboard</p>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <button
-            onClick={fetchOrders}
-            style={{ fontFamily: 'var(--font-body)', fontSize: '0.55rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--gold)', background: 'transparent', border: '1px solid rgba(201,169,110,0.3)', padding: '0.4rem 1rem', cursor: 'pointer' }}
-          >↻ Refresh</button>
-          <button
-            onClick={handleLogout}
-            style={{ fontFamily: 'var(--font-body)', fontSize: '0.55rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-muted)', background: 'transparent', border: '1px solid rgba(201,169,110,0.1)', padding: '0.4rem 1rem', cursor: 'pointer' }}
-          >Logout</button>
-        </div>
       </div>
+
+      {message && (
+        <div style={{ padding: '1rem', textAlign: 'center', background: message.includes('Failed') ? 'rgba(160, 68, 90, 0.1)' : 'rgba(201, 169, 110, 0.1)', borderBottom: `1px solid ${message.includes('Failed') ? '#a0445a' : 'var(--gold)'}` }}>
+          <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.6rem', color: message.includes('Failed') ? '#a0445a' : 'var(--gold)', letterSpacing: '0.1em' }}>{message}</p>
+        </div>
+      )}
 
       <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
 
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
           {[['overview', 'Overview'], ['orders', 'Orders']].map(([tab, label]) => (
             <button key={tab} onClick={() => setActiveTab(tab as any)}
               style={{ fontFamily: 'var(--font-body)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', padding: '0.6rem 1.5rem', cursor: 'pointer', border: 'none', background: activeTab === tab ? 'var(--gold)' : 'transparent', color: activeTab === tab ? 'var(--black)' : 'var(--text-muted)', borderBottom: activeTab !== tab ? '1px solid rgba(201,169,110,0.2)' : 'none', transition: 'all 0.3s ease' }}
@@ -184,7 +181,7 @@ export default function AdminDashboard() {
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
 
                 {/* KPI Cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
                   {[
                     { label: 'Total Revenue', value: `${totalRevenue.toLocaleString()} EGP`, color: 'var(--gold)' },
                     { label: 'Total Orders', value: orders.length, color: 'var(--cream)' },
@@ -277,7 +274,7 @@ export default function AdminDashboard() {
                 {/* Top Governorates */}
                 <div style={cardStyle}>
                   <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.5rem', letterSpacing: '0.25em', color: 'var(--gold)', textTransform: 'uppercase', marginBottom: '1.5rem' }}>Top Governorates</p>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '0.75rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '0.75rem' }}>
                     {Object.entries(
                       orders.reduce((acc: Record<string, number>, o) => {
                         acc[o.governorate] = (acc[o.governorate] || 0) + 1;
@@ -322,7 +319,7 @@ export default function AdminDashboard() {
                     <motion.div key={order.id}
                       initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, delay: i * 0.04 }}
-                      style={{ ...cardStyle, display: 'grid', gridTemplateColumns: '1fr auto', gap: '1.5rem', alignItems: 'start' }}
+                      style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
                     >
                       <div>
                         {/* Order Header */}
@@ -340,7 +337,7 @@ export default function AdminDashboard() {
                         </div>
 
                         {/* Customer */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.5rem 2rem', marginBottom: '1rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.5rem 2rem', marginBottom: '1rem' }}>
                           <div>
                             <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.45rem', color: 'var(--text-muted)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.2rem' }}>Customer</p>
                             <p style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', color: 'var(--cream)', letterSpacing: '0.05em' }}>{order.first_name} {order.last_name}</p>
@@ -374,7 +371,7 @@ export default function AdminDashboard() {
                       </div>
 
                       {/* Status Controls */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minWidth: '130px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.45rem', letterSpacing: '0.2em', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Update Status</p>
                         {['pending', 'on_the_way', 'delivered', 'cancelled'].map(s => (
                           <button key={s}

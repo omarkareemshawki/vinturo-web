@@ -52,7 +52,7 @@ export default function Home() {
           initial={{ opacity: 0 }}
           animate={{ opacity: mounted ? 1 : 0 }}
           transition={{ duration: 2 }}
-          style={{ position: 'relative', textAlign: 'center', zIndex: 2, padding: '0 2rem', width: '100%' }}
+          style={{ position: 'relative', textAlign: 'center', zIndex: 2, padding: isMobile ? '0 1rem' : '0 2rem', width: 'auto', maxWidth: '1200px' }}
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}

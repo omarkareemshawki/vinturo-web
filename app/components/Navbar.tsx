@@ -29,7 +29,7 @@ export default function Navbar() {
     <>
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
-        padding: '1.5rem 3rem',
+        padding: 'clamp(1rem, 3vw, 1.5rem) clamp(1rem, 3vw, 3rem)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         transition: 'all 0.6s ease',
         background: scrolled ? 'rgba(13,10,7,0.95)' : 'transparent',

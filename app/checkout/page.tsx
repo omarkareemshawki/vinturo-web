@@ -174,7 +174,7 @@ export default function CheckoutPage() {
       {/* Main grid */}
       <div style={{
         maxWidth: '1000px', margin: '0 auto',
-        padding: isMobile ? '0 1.5rem 4rem' : '0 3rem 8rem',
+        padding: isMobile ? '0 1rem 4rem' : '0 3rem 8rem',
         display: 'grid',
         gridTemplateColumns: (isMobile || step === 'confirmed') ? '1fr' : '1fr 360px',
         gap: isMobile ? '2rem' : '4rem',
@@ -335,7 +335,7 @@ export default function CheckoutPage() {
           {/* CONFIRMED */}
           {step === 'confirmed' && (
             <motion.div key="confirmed" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1 }}
-              style={{ textAlign: 'center', padding: '4rem 2rem', gridColumn: '1 / -1' }}
+              style={{ textAlign: 'center', padding: isMobile ? '4rem 1rem' : '4rem 2rem', gridColumn: '1 / -1', maxWidth: '600px', margin: '0 auto' }}
             >
               <motion.img src="/compass.png" alt="Compass"
                 animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
