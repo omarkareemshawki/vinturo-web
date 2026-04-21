@@ -3,10 +3,44 @@ import { NextResponse } from 'next/server';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Input validation
+function validateOrderData(data: any) {
+  const errors: string[] = [];
+  
+  // Validate form
+  if (!data.form || typeof data.form !== 'object') errors.push('Invalid form data');
+  if (!data.form?.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.form.email)) errors.push('Invalid email');
+  if (!data.form?.firstName || data.form.firstName.length < 2) errors.push('Invalid first name');
+  if (!data.form?.lastName || data.form.lastName.length < 2) errors.push('Invalid last name');
+  
+  // Validate items array
+  if (!Array.isArray(data.items)) errors.push('Items must be an array');
+  if (data.items.length === 0) errors.push('Order must contain items');
+  data.items.forEach((item: any, idx: number) => {
+    if (!item.name || typeof item.name !== 'string') errors.push(`Item ${idx} has invalid name`);
+    if (!Number.isFinite(item.price) || item.price < 0) errors.push(`Item ${idx} has invalid price`);
+    if (!Number.isFinite(item.quantity) || item.quantity < 1) errors.push(`Item ${idx} has invalid quantity`);
+  });
+  
+  // Validate total
+  if (!Number.isFinite(data.total) || data.total < 0) errors.push('Invalid total amount');
+  
+  // Validate payment method
+  if (!['cod', 'card'].includes(data.payment)) errors.push('Invalid payment method');
+  
+  return { valid: errors.length === 0, errors };
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { form, items, total, payment } = body;
+    
+    // Validate input
+    const validation = validateOrderData({ form, items, total, payment });
+    if (!validation.valid) {
+      return NextResponse.json({ error: 'Invalid order data', details: validation.errors }, { status: 400 });
+    }
 
     const itemsHTML = items.map((item: any) => `
       <tr>
