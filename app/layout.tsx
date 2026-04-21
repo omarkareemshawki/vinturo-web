@@ -1,8 +1,10 @@
+'use client';
 import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import CustomCursor from "./components/CustomCursor";
+import { usePathname } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Venturo — MMXXVI",
@@ -10,13 +12,16 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isAdmin = pathname.startsWith('/admin');
+
   return (
     <html lang="en">
       <body>
         <CustomCursor />
-        <Navbar />
+        {!isAdmin && <Navbar />}
         <main>{children}</main>
-        <Footer />
+        {!isAdmin && <Footer />}
       </body>
     </html>
   );
