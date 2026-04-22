@@ -1,4 +1,4 @@
-/*import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -79,9 +79,4 @@ export async function POST(request: Request) {
   console.log('✓ Admin 2FA successful');
 
   return response;
-}
-*/
-import { NextResponse } from 'next/server';
-export async function GET() {
-  return NextResponse.json({ message: "2FA is disabled" });
 }
