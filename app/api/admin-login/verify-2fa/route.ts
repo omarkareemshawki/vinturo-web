@@ -81,3 +81,7 @@ export async function POST(request: Request) {
   return response;
 }
 */
+import { NextResponse } from 'next/server';
+export async function GET() {
+  return NextResponse.json({ message: "2FA is disabled" });
+}
