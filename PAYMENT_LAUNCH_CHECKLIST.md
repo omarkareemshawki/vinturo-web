@@ -4,7 +4,7 @@ Complete all items before accepting real payments.
 
 ## Database Security ✓
 
-- [ ] Run `DATABASE_MIGRATION.sql` in Supabase SQL Editor
+- [✓] Run `DATABASE_MIGRATION.sql` in Supabase SQL Editor
 - [ ] Verify payment columns added: `payment_transaction_id`, `payment_status`, `updated_at`
 - [ ] Run RLS policies from `SECURITY_SETUP.md`
 - [ ] Enable Row Level Security on orders table

@@ -3,6 +3,10 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/navigation';
+import { ProductsTab } from '../components/admin/ProductsTab';
+import { SalesReportsTab } from '../components/admin/SalesReportsTab';
+import { CustomerInsightsTab } from '../components/admin/CustomerInsightsTab';
+import { AnalyticsTab } from '../components/admin/AnalyticsTab';
 
 type Order = {
   id: string;
@@ -36,7 +40,7 @@ const STATUS_LABELS: Record<string, string> = {
 export default function AdminDashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'orders'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'products' | 'sales-reports' | 'customer-insights' | 'analytics'>('overview');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string>('');
@@ -160,7 +164,7 @@ export default function AdminDashboard() {
 
         {/* Tabs */}
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
-          {[['overview', 'Overview'], ['orders', 'Orders']].map(([tab, label]) => (
+          {[['overview', 'Overview'], ['orders', 'Orders'], ['products', 'Products'], ['sales-reports', 'Sales Reports'], ['customer-insights', 'Customers'], ['analytics', 'Analytics']].map(([tab, label]) => (
             <button key={tab} onClick={() => setActiveTab(tab as any)}
               style={{ fontFamily: 'var(--font-body)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', padding: '0.6rem 1.5rem', cursor: 'pointer', border: 'none', background: activeTab === tab ? 'var(--gold)' : 'transparent', color: activeTab === tab ? 'var(--black)' : 'var(--text-muted)', borderBottom: activeTab !== tab ? '1px solid rgba(201,169,110,0.2)' : 'none', transition: 'all 0.3s ease' }}
             >{label}</button>
@@ -392,6 +396,30 @@ export default function AdminDashboard() {
                     </motion.div>
                   ))}
                 </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'products' && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
+                <ProductsTab cardStyle={cardStyle} />
+              </motion.div>
+            )}
+
+            {activeTab === 'sales-reports' && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
+                <SalesReportsTab cardStyle={cardStyle} />
+              </motion.div>
+            )}
+
+            {activeTab === 'customer-insights' && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
+                <CustomerInsightsTab cardStyle={cardStyle} />
+              </motion.div>
+            )}
+
+            {activeTab === 'analytics' && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
+                <AnalyticsTab cardStyle={cardStyle} />
               </motion.div>
             )}
           </>
