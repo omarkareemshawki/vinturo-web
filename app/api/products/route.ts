@@ -62,7 +62,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    const { id, name, description, price, stock_level, image_url, gender } = body;
+    const { id, name, description, price, stock_level, image_url, gender, notes } = body;
 
     if (!id) {
       return NextResponse.json(
