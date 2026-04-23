@@ -10,3 +10,9 @@ CREATE INDEX IF NOT EXISTS idx_products_gender ON products(gender);
 ALTER TABLE products
 ADD CONSTRAINT check_valid_gender 
 CHECK (gender IN ('male', 'female', 'unisex'));
+
+-- Add notes column to store product notes/tags as JSON array
+ALTER TABLE products ADD COLUMN IF NOT EXISTS notes JSONB DEFAULT '[]'::jsonb;
+
+-- Create index for notes queries
+CREATE INDEX IF NOT EXISTS idx_products_notes ON products USING gin(notes);

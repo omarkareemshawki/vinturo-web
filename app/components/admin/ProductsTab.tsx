@@ -38,6 +38,7 @@ export function ProductsTab({ cardStyle }: ProductsTabProps) {
     subtitle: '',
     tagline: '',
     gender: 'unisex',
+    notes: '',
   });
 
   const handleImageUpload = async (file: File) => {
@@ -100,9 +101,14 @@ export function ProductsTab({ cardStyle }: ProductsTabProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const method = editingId ? 'PUT' : 'POST';
+    const notesArray = formData.notes
+      .split(',')
+      .map((note: string) => note.trim())
+      .filter((note: string) => note.length > 0);
+    
     const body = editingId
-      ? { id: editingId, ...formData }
-      : formData;
+      ? { id: editingId, ...formData, notes: notesArray }
+      : { ...formData, notes: notesArray };
 
     try {
       const res = await fetch('/api/products', {
@@ -113,7 +119,7 @@ export function ProductsTab({ cardStyle }: ProductsTabProps) {
 
       if (res.ok) {
         setMessage(editingId ? 'Product updated' : 'Product created');
-        setFormData({ name: '', description: '', price: '', stock_level: '', image_url: '', subtitle: '', tagline: '', gender: 'unisex' });
+        setFormData({ name: '', description: '', price: '', stock_level: '', image_url: '', subtitle: '', tagline: '', gender: 'unisex', notes: '' });
         setUploadedImageUrl('');
         setEditingId(null);
         setShowForm(false);
@@ -151,6 +157,7 @@ export function ProductsTab({ cardStyle }: ProductsTabProps) {
       subtitle: product.subtitle || '',
       tagline: product.tagline || '',
       gender: product.gender || 'unisex',
+      notes: (product.notes || []).join(', '),
     });
     setUploadedImageUrl(product.image_url);
     setEditingId(product.id);
@@ -168,7 +175,7 @@ export function ProductsTab({ cardStyle }: ProductsTabProps) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', color: 'var(--gold)' }}>PRODUCTS</h2>
         <button
-          onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData({ name: '', description: '', price: '', stock_level: '', image_url: '', subtitle: '', tagline: '', gender: 'unisex' }); setUploadedImageUrl(''); }}
+          onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData({ name: '', description: '', price: '', stock_level: '', image_url: '', subtitle: '', tagline: '', gender: 'unisex', notes: '' }); setUploadedImageUrl(''); }}
           style={{
             fontFamily: 'var(--font-body)', fontSize: '0.55rem', letterSpacing: '0.2em',
             textTransform: 'uppercase', padding: '0.6rem 1rem',
@@ -276,6 +283,18 @@ export function ProductsTab({ cardStyle }: ProductsTabProps) {
             <option value="male">For Him (Male)</option>
             <option value="female">For Her (Female)</option>
           </select>
+
+          <input
+            type="text"
+            placeholder="Notes/Tags (comma-separated, e.g., Oud, Sandalwood, Spices)"
+            value={formData.notes}
+            onChange={e => setFormData({ ...formData, notes: e.target.value })}
+            style={{
+              width: '100%', background: 'rgba(201,169,110,0.04)', border: '1px solid rgba(201,169,110,0.2)',
+              padding: '0.75rem', fontFamily: 'var(--font-body)', fontSize: '0.6rem',
+              color: 'var(--cream)', outline: 'none', marginBottom: '1rem'
+            }}
+          />
 
           {/* Drag-and-drop image upload */}
           <div
