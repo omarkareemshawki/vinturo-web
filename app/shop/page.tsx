@@ -1,20 +1,29 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '../store/cartStore';
 import { useWindowSize } from '../hooks/useWindowSize';
 
-const products = [
+type Product = {
+  id: string;
+  name: string;
+  subtitle?: string;
+  tagline?: string;
+  image_url: string;
+  price: number;
+  description: string;
+  notes?: string[];
+};
+
+const defaultProducts: Product[] = [
   {
     id: 'explorers-quest',
     name: "Explorer's Quest",
     subtitle: 'For Him',
     tagline: 'Hey Handsome, are you ready to break necks?',
-    image: '/male-box.jpg',
+    image_url: '/male-box.jpg',
     price: 2200,
-    accent: 'var(--gold)',
-    accentRgb: '201,169,110',
     description: 'A bold collection of five powerful scents for the man who commands every room he enters. Housed in a hand-crafted leather box with brass fittings. 5 x 30ml',
     notes: ['Oud', 'Sandalwood', 'spices', 'Amber', 'Cedar'],
   },
@@ -23,10 +32,8 @@ const products = [
     name: 'Forbidden Odyssey',
     subtitle: 'For Her',
     tagline: 'Hey there gorgeous, what mood are you in today?',
-    image: '/female-box.jpg',
+    image_url: '/female-box.jpg',
     price: 2200,
-    accent: '#a0445a',
-    accentRgb: '107,26,42',
     description: 'Five intoxicating scents for the woman who leaves a trail wherever she goes. Presented in a crimson leather box — a treasure worth opening. 5 x 30ml',
     notes: ['Rose', 'Musk', 'Vanilla', 'Jasmine', 'Patchouli'],
   },
@@ -36,10 +43,36 @@ export default function ShopPage() {
   const router = useRouter();
   const addToCart = useCartStore(s => s.addToCart);
   const [added, setAdded] = useState<string | null>(null);
+  const [products, setProducts] = useState<Product[]>(defaultProducts);
+  const [loading, setLoading] = useState(true);
   const { isMobile } = useWindowSize();
 
-  const handleAddToCart = (product: typeof products[0]) => {
-    addToCart({ id: product.id, name: product.name, price: product.price, image: product.image, quantity: 1 });
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch('/api/products');
+        const data = await res.json();
+        if (data.products && data.products.length > 0) {
+          setProducts(data.products);
+        }
+      } catch (err) {
+        console.error('Failed to fetch products:', err);
+        // Fall back to default products
+      }
+      setLoading(false);
+    };
+
+    fetchProducts();
+  }, []);
+
+  const handleAddToCart = (product: Product) => {
+    addToCart({ 
+      id: product.id, 
+      name: product.name, 
+      price: product.price, 
+      image: product.image_url, 
+      quantity: 1 
+    });
     setAdded(product.id);
     setTimeout(() => { router.push('/cart'); }, 600);
   };
@@ -76,101 +109,114 @@ export default function ShopPage() {
         justifyContent: 'center',
         width: '100%',
       }}>
-        {products.map((product, i) => (
-          <motion.div
-            key={product.id}
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: i * 0.2 }}
-            style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}
-          >
-            {/* Image */}
+        {products.map((product, i) => {
+          // Determine accent color based on product ID
+          const isExplorer = product.id.includes('explorer') || product.id === 'explorers-quest';
+          const accent = isExplorer ? 'var(--gold)' : '#a0445a';
+          const accentRgb = isExplorer ? '201,169,110' : '107,26,42';
+
+          return (
             <motion.div
-              whileHover={{ scale: 1.02 }}
-              transition={{ duration: 0.5 }}
-              style={{ position: 'relative', aspectRatio: isMobile ? '4/3' : '4/5', overflow: 'hidden', marginBottom: '1.5rem', width: '100%' }}
+              key={product.id}
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: i * 0.2 }}
+              style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}
             >
+              {/* Image */}
               <motion.div
-                style={{ position: 'absolute', inset: 0, backgroundImage: `url(${product.image})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
-                whileHover={{ scale: 1.06 }}
-                transition={{ duration: 0.8 }}
-              />
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(13,10,7,0.7) 0%, transparent 60%)' }} />
-
-              {[['top', 'left'], ['top', 'right'], ['bottom', 'left'], ['bottom', 'right']].map(([v, h]) => (
-                <motion.div key={`${v}${h}`}
-                  style={{
-                    position: 'absolute', [v]: '1rem', [h]: '1rem',
-                    width: '20px', height: '20px',
-                    borderTop: v === 'top' ? `1px solid rgba(${product.accentRgb},0.5)` : 'none',
-                    borderBottom: v === 'bottom' ? `1px solid rgba(${product.accentRgb},0.5)` : 'none',
-                    borderLeft: h === 'left' ? `1px solid rgba(${product.accentRgb},0.5)` : 'none',
-                    borderRight: h === 'right' ? `1px solid rgba(${product.accentRgb},0.5)` : 'none',
-                  }}
-                  animate={{ opacity: [0.4, 1, 0.4] }}
-                  transition={{ duration: 3, repeat: Infinity, delay: i * 0.5 }}
+                whileHover={{ scale: 1.02 }}
+                transition={{ duration: 0.5 }}
+                style={{ position: 'relative', aspectRatio: isMobile ? '4/3' : '4/5', overflow: 'hidden', marginBottom: '1.5rem', width: '100%' }}
+              >
+                <motion.div
+                  style={{ position: 'absolute', inset: 0, backgroundImage: `url(${product.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                  whileHover={{ scale: 1.06 }}
+                  transition={{ duration: 0.8 }}
                 />
-              ))}
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(13,10,7,0.7) 0%, transparent 60%)' }} />
 
-              <div style={{ position: 'absolute', bottom: '1.5rem', left: '1.5rem' }}>
-                <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.5rem', letterSpacing: '0.25em', color: product.accent, textTransform: 'uppercase' }}>{product.subtitle}</p>
-              </div>
-            </motion.div>
-
-            {/* Info */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem', fontWeight: 300, letterSpacing: '0.1em', color: 'var(--cream)', marginBottom: '0.5rem' }}>
-                {product.name}
-              </h2>
-              <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: '1rem' }}>
-                {product.tagline}
-              </p>
-              <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: 1.8, marginBottom: '1rem' }}>
-                {product.description}
-              </p>
-
-              {/* Notes */}
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-                {product.notes.map(note => (
-                  <span key={note} style={{
-                    fontFamily: 'var(--font-body)', fontSize: '0.5rem', letterSpacing: '0.15em',
-                    color: product.accent, border: `1px solid rgba(${product.accentRgb},0.3)`,
-                    padding: '0.25rem 0.6rem', textTransform: 'uppercase',
-                  }}>{note}</span>
+                {[['top', 'left'], ['top', 'right'], ['bottom', 'left'], ['bottom', 'right']].map(([v, h]) => (
+                  <motion.div key={`${v}${h}`}
+                    style={{
+                      position: 'absolute', [v]: '1rem', [h]: '1rem',
+                      width: '20px', height: '20px',
+                      borderTop: v === 'top' ? `1px solid rgba(${accentRgb},0.5)` : 'none',
+                      borderBottom: v === 'bottom' ? `1px solid rgba(${accentRgb},0.5)` : 'none',
+                      borderLeft: h === 'left' ? `1px solid rgba(${accentRgb},0.5)` : 'none',
+                      borderRight: h === 'right' ? `1px solid rgba(${accentRgb},0.5)` : 'none',
+                    }}
+                    animate={{ opacity: [0.4, 1, 0.4] }}
+                    transition={{ duration: 3, repeat: Infinity, delay: i * 0.5 }}
+                  />
                 ))}
-              </div>
 
-              {/* Price & CTA */}
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                marginTop: 'auto', borderTop: '1px solid var(--border)', paddingTop: '1.5rem',
-                flexWrap: 'wrap', gap: '1rem',
-              }}>
-                <div>
-                  <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.5rem', letterSpacing: '0.2em', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Price</p>
-                  <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', color: 'var(--gold)' }}>
-                    {product.price.toLocaleString()} <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>EGP</span>
+                <div style={{ position: 'absolute', bottom: '1.5rem', left: '1.5rem' }}>
+                  <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.5rem', letterSpacing: '0.25em', color: accent, textTransform: 'uppercase' }}>
+                    {product.subtitle || 'Collection'}
                   </p>
                 </div>
-                <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => handleAddToCart(product)}
-                  style={{
-                    fontFamily: 'var(--font-body)', fontSize: '0.55rem', letterSpacing: '0.2em',
-                    textTransform: 'uppercase', color: 'var(--black)',
-                    background: added === product.id ? 'var(--gold-light)' : 'var(--gold)',
-                    border: 'none', padding: '0.85rem 1.8rem', cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    width: isMobile ? '100%' : 'auto',
-                  }}
-                >
-                  {added === product.id ? 'Added ✓' : 'Add to Cart'}
-                </motion.button>
+              </motion.div>
+
+              {/* Info */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem', fontWeight: 300, letterSpacing: '0.1em', color: 'var(--cream)', marginBottom: '0.5rem' }}>
+                  {product.name}
+                </h2>
+                {product.tagline && (
+                  <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: '1rem' }}>
+                    {product.tagline}
+                  </p>
+                )}
+                <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: 1.8, marginBottom: '1rem' }}>
+                  {product.description}
+                </p>
+
+                {/* Notes */}
+                {product.notes && product.notes.length > 0 && (
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+                    {product.notes.map(note => (
+                      <span key={note} style={{
+                        fontFamily: 'var(--font-body)', fontSize: '0.5rem', letterSpacing: '0.15em',
+                        color: accent, border: `1px solid rgba(${accentRgb},0.3)`,
+                        padding: '0.25rem 0.6rem', textTransform: 'uppercase',
+                      }}>{note}</span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Price & CTA */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  marginTop: 'auto', borderTop: '1px solid var(--border)', paddingTop: '1.5rem',
+                  flexWrap: 'wrap', gap: '1rem',
+                }}>
+                  <div>
+                    <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.5rem', letterSpacing: '0.2em', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Price</p>
+                    <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', color: 'var(--gold)' }}>
+                      {product.price.toLocaleString()} <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>EGP</span>
+                    </p>
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => handleAddToCart(product)}
+                    style={{
+                      fontFamily: 'var(--font-body)', fontSize: '0.55rem', letterSpacing: '0.2em',
+                      textTransform: 'uppercase', color: 'var(--black)',
+                      background: added === product.id ? 'var(--gold-light)' : 'var(--gold)',
+                      border: 'none', padding: '0.85rem 1.8rem', cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      width: isMobile ? '100%' : 'auto',
+                    }}
+                  >
+                    {added === product.id ? 'Added ✓' : 'Add to Cart'}
+                  </motion.button>
+                </div>
               </div>
-            </div>
-          </motion.div>
-        ))}
+            </motion.div>
+          );
+        })}
       </div>
     </div>
   );

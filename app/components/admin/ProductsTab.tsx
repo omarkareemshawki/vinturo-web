@@ -9,10 +9,13 @@ interface ProductsTabProps {
 type Product = {
   id: string;
   name: string;
+  subtitle?: string;
+  tagline?: string;
   description: string;
   price: number;
   stock_level: number;
   image_url: string;
+  notes?: string[];
   created_at: string;
 };
 
@@ -22,13 +25,62 @@ export function ProductsTab({ cardStyle }: ProductsTabProps) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [message, setMessage] = useState('');
+  const [uploadedImageUrl, setUploadedImageUrl] = useState('');
+  const [dragActive, setDragActive] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     price: '',
     stock_level: '',
     image_url: '',
+    subtitle: '',
+    tagline: '',
   });
+
+  const handleImageUpload = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setMessage('Please upload an image file');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        setUploadedImageUrl(dataUrl);
+        setFormData({ ...formData, image_url: dataUrl });
+        setMessage('Image uploaded (stored as data URL)');
+        setTimeout(() => setMessage(''), 3000);
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      setMessage('Failed to upload image');
+      console.error('Upload error:', err);
+    }
+    setUploading(false);
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleImageUpload(e.dataTransfer.files[0]);
+    }
+  };
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -38,6 +90,7 @@ export function ProductsTab({ cardStyle }: ProductsTabProps) {
       setProducts(data.products || []);
     } catch (err) {
       console.error('Failed to fetch products:', err);
+      setMessage('Failed to load products');
     }
     setLoading(false);
   };
@@ -58,7 +111,8 @@ export function ProductsTab({ cardStyle }: ProductsTabProps) {
 
       if (res.ok) {
         setMessage(editingId ? 'Product updated' : 'Product created');
-        setFormData({ name: '', description: '', price: '', stock_level: '', image_url: '' });
+        setFormData({ name: '', description: '', price: '', stock_level: '', image_url: '', subtitle: '', tagline: '' });
+        setUploadedImageUrl('');
         setEditingId(null);
         setShowForm(false);
         fetchProducts();
@@ -66,6 +120,7 @@ export function ProductsTab({ cardStyle }: ProductsTabProps) {
       }
     } catch (err) {
       setMessage('Error saving product');
+      console.error('Save error:', err);
     }
   };
 
@@ -91,7 +146,10 @@ export function ProductsTab({ cardStyle }: ProductsTabProps) {
       price: product.price.toString(),
       stock_level: product.stock_level.toString(),
       image_url: product.image_url,
+      subtitle: product.subtitle || '',
+      tagline: product.tagline || '',
     });
+    setUploadedImageUrl(product.image_url);
     setEditingId(product.id);
     setShowForm(true);
   };
@@ -107,7 +165,7 @@ export function ProductsTab({ cardStyle }: ProductsTabProps) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', color: 'var(--gold)' }}>PRODUCTS</h2>
         <button
-          onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData({ name: '', description: '', price: '', stock_level: '', image_url: '' }); }}
+          onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData({ name: '', description: '', price: '', stock_level: '', image_url: '', subtitle: '', tagline: '' }); setUploadedImageUrl(''); }}
           style={{
             fontFamily: 'var(--font-body)', fontSize: '0.55rem', letterSpacing: '0.2em',
             textTransform: 'uppercase', padding: '0.6rem 1rem',
@@ -154,6 +212,31 @@ export function ProductsTab({ cardStyle }: ProductsTabProps) {
             />
           </div>
 
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+            <input
+              type="text"
+              placeholder="Subtitle (optional)"
+              value={formData.subtitle}
+              onChange={e => setFormData({ ...formData, subtitle: e.target.value })}
+              style={{
+                background: 'rgba(201,169,110,0.04)', border: '1px solid rgba(201,169,110,0.2)',
+                padding: '0.75rem', fontFamily: 'var(--font-body)', fontSize: '0.6rem',
+                color: 'var(--cream)', outline: 'none'
+              }}
+            />
+            <input
+              type="text"
+              placeholder="Tagline (optional)"
+              value={formData.tagline}
+              onChange={e => setFormData({ ...formData, tagline: e.target.value })}
+              style={{
+                background: 'rgba(201,169,110,0.04)', border: '1px solid rgba(201,169,110,0.2)',
+                padding: '0.75rem', fontFamily: 'var(--font-body)', fontSize: '0.6rem',
+                color: 'var(--cream)', outline: 'none'
+              }}
+            />
+          </div>
+
           <textarea
             placeholder="Description"
             value={formData.description}
@@ -165,38 +248,66 @@ export function ProductsTab({ cardStyle }: ProductsTabProps) {
             }}
           />
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-            <input
-              type="number"
-              placeholder="Stock Level"
-              value={formData.stock_level}
-              onChange={e => setFormData({ ...formData, stock_level: e.target.value })}
-              style={{
-                background: 'rgba(201,169,110,0.04)', border: '1px solid rgba(201,169,110,0.2)',
-                padding: '0.75rem', fontFamily: 'var(--font-body)', fontSize: '0.6rem',
-                color: 'var(--cream)', outline: 'none'
-              }}
-            />
-            <input
-              type="text"
-              placeholder="Image URL"
-              value={formData.image_url}
-              onChange={e => setFormData({ ...formData, image_url: e.target.value })}
-              style={{
-                background: 'rgba(201,169,110,0.04)', border: '1px solid rgba(201,169,110,0.2)',
-                padding: '0.75rem', fontFamily: 'var(--font-body)', fontSize: '0.6rem',
-                color: 'var(--cream)', outline: 'none'
-              }}
-            />
+          <input
+            type="number"
+            placeholder="Stock Level"
+            value={formData.stock_level}
+            onChange={e => setFormData({ ...formData, stock_level: e.target.value })}
+            style={{
+              width: '100%', background: 'rgba(201,169,110,0.04)', border: '1px solid rgba(201,169,110,0.2)',
+              padding: '0.75rem', fontFamily: 'var(--font-body)', fontSize: '0.6rem',
+              color: 'var(--cream)', outline: 'none', marginBottom: '1rem'
+            }}
+          />
+
+          {/* Drag-and-drop image upload */}
+          <div
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+            style={{
+              border: `2px dashed ${dragActive ? 'var(--gold)' : 'rgba(201,169,110,0.3)'}`,
+              background: dragActive ? 'rgba(201,169,110,0.1)' : 'rgba(201,169,110,0.04)',
+              padding: '2rem',
+              textAlign: 'center',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              marginBottom: '1rem'
+            }}
+          >
+            <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.6rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+              Drag & drop image here
+            </p>
+            <label style={{ display: 'block', fontFamily: 'var(--font-body)', fontSize: '0.55rem', color: 'var(--gold)', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              or click to browse
+              <input
+                type="file"
+                accept="image/*"
+                onChange={e => e.target.files && handleImageUpload(e.target.files[0])}
+                style={{ display: 'none' }}
+                disabled={uploading}
+              />
+            </label>
+            {uploadedImageUrl && (
+              <img
+                src={uploadedImageUrl}
+                alt="Preview"
+                style={{ maxWidth: '200px', maxHeight: '200px', marginTop: '1rem', borderRadius: '4px' }}
+              />
+            )}
           </div>
 
           <button
             type="submit"
+            disabled={!formData.name || !formData.price}
             style={{
               width: '100%', fontFamily: 'var(--font-body)', fontSize: '0.6rem',
               letterSpacing: '0.25em', textTransform: 'uppercase',
               color: 'var(--black)', background: 'var(--gold)',
-              border: 'none', padding: '0.75rem', cursor: 'pointer'
+              border: 'none', padding: '0.75rem', cursor: 'pointer',
+              opacity: !formData.name || !formData.price ? 0.5 : 1
             }}
           >
             {editingId ? 'Update' : 'Create'} Product
@@ -205,9 +316,18 @@ export function ProductsTab({ cardStyle }: ProductsTabProps) {
       )}
 
       {!loading && products.length === 0 && !showForm && (
-        <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.6rem', color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>
-          No products. Click "+ Add Product" to create one.
-        </p>
+        <button
+          onClick={fetchProducts}
+          style={{
+            width: '100%', fontFamily: 'var(--font-body)', fontSize: '0.6rem',
+            letterSpacing: '0.2em', textTransform: 'uppercase',
+            padding: '1rem', background: 'rgba(201,169,110,0.1)',
+            border: '1px solid rgba(201,169,110,0.2)', color: 'var(--gold)',
+            cursor: 'pointer', marginBottom: '2rem'
+          }}
+        >
+          Load Products
+        </button>
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
@@ -226,9 +346,19 @@ export function ProductsTab({ cardStyle }: ProductsTabProps) {
                 style={{ width: '100%', height: '180px', objectFit: 'cover', marginBottom: '1rem', borderRadius: '4px' }}
               />
             )}
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', color: 'var(--gold)', marginBottom: '0.5rem' }}>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', color: 'var(--gold)', marginBottom: '0.25rem' }}>
               {product.name}
             </h3>
+            {product.subtitle && (
+              <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.5rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                {product.subtitle}
+              </p>
+            )}
+            {product.tagline && (
+              <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.5rem', color: 'rgba(201,169,110,0.7)', marginBottom: '0.5rem', fontStyle: 'italic' }}>
+                "{product.tagline}"
+              </p>
+            )}
             <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.55rem', color: 'var(--text-muted)', marginBottom: '0.75rem', lineHeight: '1.4' }}>
               {product.description}
             </p>
@@ -269,21 +399,7 @@ export function ProductsTab({ cardStyle }: ProductsTabProps) {
           </motion.div>
         ))}
       </div>
-
-      {!loading && products.length === 0 && (
-        <button
-          onClick={fetchProducts}
-          style={{
-            width: '100%', fontFamily: 'var(--font-body)', fontSize: '0.6rem',
-            letterSpacing: '0.2em', textTransform: 'uppercase',
-            padding: '1rem', background: 'rgba(201,169,110,0.1)',
-            border: '1px solid rgba(201,169,110,0.2)', color: 'var(--gold)',
-            cursor: 'pointer', marginTop: '1rem'
-          }}
-        >
-          Load Products
-        </button>
-      )}
     </div>
   );
 }
+
