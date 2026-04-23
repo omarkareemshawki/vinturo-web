@@ -23,7 +23,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, description, price, stock_level, image_url } = body;
+    const { name, description, price, stock_level, image_url, gender } = body;
 
     if (!name || !price) {
       return NextResponse.json(
@@ -41,6 +41,7 @@ export async function POST(request: Request) {
           price: parseFloat(price),
           stock_level: parseInt(stock_level) || 0,
           image_url,
+          gender: gender || 'unisex',
         },
       ])
       .select();
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    const { id, name, description, price, stock_level, image_url } = body;
+    const { id, name, description, price, stock_level, image_url, gender } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -75,6 +76,7 @@ export async function PUT(request: Request) {
     if (price !== undefined) updateData.price = parseFloat(price);
     if (stock_level !== undefined) updateData.stock_level = parseInt(stock_level);
     if (image_url !== undefined) updateData.image_url = image_url;
+    if (gender !== undefined) updateData.gender = gender;
 
     const { data, error } = await supabase
       .from('products')

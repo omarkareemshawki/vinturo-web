@@ -15,6 +15,7 @@ type Product = {
   price: number;
   stock_level: number;
   image_url: string;
+  gender?: string;
   notes?: string[];
   created_at: string;
 };
@@ -36,6 +37,7 @@ export function ProductsTab({ cardStyle }: ProductsTabProps) {
     image_url: '',
     subtitle: '',
     tagline: '',
+    gender: 'unisex',
   });
 
   const handleImageUpload = async (file: File) => {
@@ -111,7 +113,7 @@ export function ProductsTab({ cardStyle }: ProductsTabProps) {
 
       if (res.ok) {
         setMessage(editingId ? 'Product updated' : 'Product created');
-        setFormData({ name: '', description: '', price: '', stock_level: '', image_url: '', subtitle: '', tagline: '' });
+        setFormData({ name: '', description: '', price: '', stock_level: '', image_url: '', subtitle: '', tagline: '', gender: 'unisex' });
         setUploadedImageUrl('');
         setEditingId(null);
         setShowForm(false);
@@ -148,6 +150,7 @@ export function ProductsTab({ cardStyle }: ProductsTabProps) {
       image_url: product.image_url,
       subtitle: product.subtitle || '',
       tagline: product.tagline || '',
+      gender: product.gender || 'unisex',
     });
     setUploadedImageUrl(product.image_url);
     setEditingId(product.id);
@@ -165,7 +168,7 @@ export function ProductsTab({ cardStyle }: ProductsTabProps) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', color: 'var(--gold)' }}>PRODUCTS</h2>
         <button
-          onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData({ name: '', description: '', price: '', stock_level: '', image_url: '', subtitle: '', tagline: '' }); setUploadedImageUrl(''); }}
+          onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData({ name: '', description: '', price: '', stock_level: '', image_url: '', subtitle: '', tagline: '', gender: 'unisex' }); setUploadedImageUrl(''); }}
           style={{
             fontFamily: 'var(--font-body)', fontSize: '0.55rem', letterSpacing: '0.2em',
             textTransform: 'uppercase', padding: '0.6rem 1rem',
@@ -259,6 +262,20 @@ export function ProductsTab({ cardStyle }: ProductsTabProps) {
               color: 'var(--cream)', outline: 'none', marginBottom: '1rem'
             }}
           />
+
+          <select
+            value={formData.gender}
+            onChange={e => setFormData({ ...formData, gender: e.target.value })}
+            style={{
+              width: '100%', background: 'rgba(201,169,110,0.04)', border: '1px solid rgba(201,169,110,0.2)',
+              padding: '0.75rem', fontFamily: 'var(--font-body)', fontSize: '0.6rem',
+              color: 'var(--cream)', outline: 'none', marginBottom: '1rem'
+            }}
+          >
+            <option value="unisex">Unisex</option>
+            <option value="male">For Him (Male)</option>
+            <option value="female">For Her (Female)</option>
+          </select>
 
           {/* Drag-and-drop image upload */}
           <div

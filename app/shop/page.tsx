@@ -13,6 +13,7 @@ type Product = {
   image_url: string;
   price: number;
   description: string;
+  gender?: string;
   notes?: string[];
 };
 
@@ -24,6 +25,7 @@ const defaultProducts: Product[] = [
     tagline: 'Hey Handsome, are you ready to break necks?',
     image_url: '/male-box.jpg',
     price: 2200,
+    gender: 'male',
     description: 'A bold collection of five powerful scents for the man who commands every room he enters. Housed in a hand-crafted leather box with brass fittings. 5 x 30ml',
     notes: ['Oud', 'Sandalwood', 'spices', 'Amber', 'Cedar'],
   },
@@ -34,6 +36,7 @@ const defaultProducts: Product[] = [
     tagline: 'Hey there gorgeous, what mood are you in today?',
     image_url: '/female-box.jpg',
     price: 2200,
+    gender: 'female',
     description: 'Five intoxicating scents for the woman who leaves a trail wherever she goes. Presented in a crimson leather box — a treasure worth opening. 5 x 30ml',
     notes: ['Rose', 'Musk', 'Vanilla', 'Jasmine', 'Patchouli'],
   },
@@ -110,10 +113,25 @@ export default function ShopPage() {
         width: '100%',
       }}>
         {products.map((product, i) => {
-          // Determine accent color based on product ID
-          const isExplorer = product.id.includes('explorer') || product.id === 'explorers-quest';
-          const accent = isExplorer ? 'var(--gold)' : '#a0445a';
-          const accentRgb = isExplorer ? '201,169,110' : '107,26,42';
+          // Determine accent color and gender label based on product gender
+          let accent = '#a0445a'; // Default to female/maroon
+          let accentRgb = '107,26,42';
+          let genderLabel = 'For Him And Her';
+
+          if (product.gender === 'male') {
+            accent = 'var(--gold)';
+            accentRgb = '201,169,110';
+            genderLabel = 'For Him';
+          } else if (product.gender === 'female') {
+            accent = '#a0445a';
+            accentRgb = '107,26,42';
+            genderLabel = 'For Her';
+          } else {
+            // unisex - use both colors, let's use a cream/neutral
+            accent = 'var(--cream)';
+            accentRgb = '245,239,230';
+            genderLabel = 'For Him And Her';
+          }
 
           return (
             <motion.div
@@ -153,7 +171,7 @@ export default function ShopPage() {
 
                 <div style={{ position: 'absolute', bottom: '1.5rem', left: '1.5rem' }}>
                   <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.5rem', letterSpacing: '0.25em', color: accent, textTransform: 'uppercase' }}>
-                    {product.subtitle || 'Collection'}
+                    {genderLabel}
                   </p>
                 </div>
               </motion.div>
