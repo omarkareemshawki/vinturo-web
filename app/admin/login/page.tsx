@@ -13,17 +13,24 @@ export default function AdminLogin() {
     setLoading(true);
     setError('');
     try {
+      console.log('[login] Attempting login...');
       const res = await fetch('/api/admin-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
+        credentials: 'include',
       });
       
+      console.log('[login] Response status:', res.status);
+      
       if (res.ok) {
-        // Cookie is set by server, redirect to admin
+        console.log('[login] ✓ Login successful, redirecting...');
+        // Small delay to ensure cookie is set
+        await new Promise(resolve => setTimeout(resolve, 500));
         router.push('/admin');
       } else {
         const data = await res.json();
+        console.log('[login] ✗ Login failed:', data.error);
         setError(data.error || 'Invalid password');
       }
     } catch (err) {
