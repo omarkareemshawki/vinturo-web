@@ -23,9 +23,16 @@ export function middleware(request: NextRequest) {
   if (request.nextUrl.pathname.startsWith('/admin')) {
     if (request.nextUrl.pathname === '/admin/login') return response;
     const auth = request.cookies.get('admin_auth');
+    console.log('[middleware] /admin check:', {
+      path: request.nextUrl.pathname,
+      authCookie: auth ? auth.value : 'NOT FOUND',
+      allCookies: request.cookies.getAll().map(c => `${c.name}=${c.value}`),
+    });
     if (!auth || auth.value !== 'true') {
+      console.log('[middleware] ✗ No valid auth, redirecting to login');
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
+    console.log('[middleware] ✓ Auth valid, allowing access');
   }
   
   return response;

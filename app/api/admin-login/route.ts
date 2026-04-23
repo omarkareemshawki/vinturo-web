@@ -16,7 +16,7 @@ export async function POST(request: Request) {
       console.log('[admin-login] ✓ Password correct, setting cookie');
       const response = NextResponse.json({ success: true });
       response.cookies.set('admin_auth', 'true', {
-        httpOnly: true,
+        httpOnly: false, // Allow client-side access
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 60 * 60 * 24, // 24 hours
